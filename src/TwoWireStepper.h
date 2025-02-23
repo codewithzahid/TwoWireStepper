@@ -8,12 +8,13 @@ class TwoWireStepper {
  private:
   int8_t _stepPin, _dirPin;
   bool _direction;
-  float _speed;                    // target speed
-  float _currentSpeed;             // current speed
+  float _targetSpeed;   // target speed
+  float _currentSpeed;  // current speed
   float _acceleration;
   float _deceleration;
   unsigned long _lastStepTime;
   unsigned long _lastSpeedUpdateTime;
+  bool _stopping;
   void stepControl();
 
  public:
@@ -25,6 +26,9 @@ class TwoWireStepper {
   void enableStepper();
   void disableStepper();
   void runStepper();
+  void stopStepper();
+  bool isStopped();
+  void startStepper(float speed);
 };
 
 #endif

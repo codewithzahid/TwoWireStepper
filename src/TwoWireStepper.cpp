@@ -9,17 +9,18 @@ TwoWireStepper::TwoWireStepper(int8_t stepPin, int8_t dirPin) {
   pinMode(_dirPin, OUTPUT);
 
   // Default parameters
-  _speed = 100;        // target speed in steps per second
+  _targetSpeed = 100;  // target speed in steps per second
   _currentSpeed = 0;   // starting speed in steps per second
   _acceleration = 50;  // steps per second^2
   _deceleration = 50;  // steps per second^2
   _lastStepTime = 0;
   _lastSpeedUpdateTime = 0;
   _direction = true;
+  _stopping = false;
 }
 
 void TwoWireStepper::setStepperSpeed(float speed) {
-  _speed = abs(speed);  // Ensure positive speed
+  _targetSpeed = abs(speed);  // Ensure positive speed
 }
 
 void TwoWireStepper::setStepperAcceleration(float acceleration) {
@@ -33,6 +34,20 @@ void TwoWireStepper::setStepperDeceleration(float deceleration) {
 void TwoWireStepper::setStepperDirection(bool direction) {
   _direction = direction;
   digitalWrite(_dirPin, _direction);
+}
+
+void TwoWireStepper::stopStepper() {
+  _stopping = true;
+  _targetSpeed = 0;  // Set target speed to 0 for deceleration
+}
+
+void TwoWireStepper::startStepper(float speed) {
+  _stopping = false;
+  _targetSpeed = speed;  // Set target speed to 0 for deceleration
+}
+
+bool TwoWireStepper::isStopped() {
+  return _currentSpeed == 0;
 }
 
 void TwoWireStepper::enableStepper() {
@@ -57,17 +72,18 @@ void TwoWireStepper::runStepper() {
   if (elapsedTime >= 1000) {                        // 1000 microseconds = 1 millisecond
     float timeInSeconds = elapsedTime / 1000000.0;  // Convert to seconds
 
-    if (_currentSpeed < _speed) {
+    if (_stopping) {
+      // Decelerate to stop
+      _currentSpeed -= _deceleration * timeInSeconds;
+      if (_currentSpeed <= 0) {
+        _currentSpeed = 0;
+        _stopping = false;  // Reset stopping flag
+      }
+    } else if (_currentSpeed < _targetSpeed) {
       // Accelerate
       _currentSpeed += _acceleration * timeInSeconds;
-      if (_currentSpeed > _speed) {
-        _currentSpeed = _speed;
-      }
-    } else if (_currentSpeed > _speed) {
-      // Decelerate
-      _currentSpeed -= _deceleration * timeInSeconds;
-      if (_currentSpeed < 0) {
-        _currentSpeed = 0;
+      if (_currentSpeed > _targetSpeed) {
+        _currentSpeed = _targetSpeed;
       }
     }
 
